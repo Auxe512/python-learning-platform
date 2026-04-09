@@ -41,4 +41,5 @@ async def test_submit_hint_none_when_all_pass():
         ) as client:
             response = await client.post("/submit", json={"code": CORRECT_CODE})
 
+    assert response.status_code == 200
     assert response.json()["hint"] is None
