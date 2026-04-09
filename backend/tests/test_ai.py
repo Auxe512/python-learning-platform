@@ -96,3 +96,5 @@ async def test_get_hint_calls_api_and_returns_content():
 
     assert hint == "這是 AI 提示"
     mock_create.assert_called_once()
+    call_kwargs = mock_create.call_args
+    assert call_kwargs.kwargs["messages"][0]["content"] == build_prompt("code", results)

@@ -1,5 +1,6 @@
 import os
 import inspect
+import openai
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
@@ -59,6 +60,23 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
 3. 回答控制在 100 字以內"""
 
     # wrong_answer (error_type is None): use full pattern-analysis prompt
+    # Guard: if error_type is unknown (not None), treat as runtime_error
+    if error_type is not None:
+        return f"""你是一個程式學習助教，目標是幫助大一學生學習 Python。
+
+學生程式碼：
+{code}
+
+執行時發生錯誤，錯誤訊息如下：
+{first_fail.get('stderr', '（錯誤訊息不可用）')}
+
+請解釋這個錯誤訊息的意思，並引導學生找到並修正問題。
+
+規則：
+1. 不要直接給出修正後的程式碼
+2. 用繁體中文回答，語氣友善鼓勵
+3. 回答控制在 150 字以內"""
+
     failed_summary = "\n".join(
         f"- Input: {r['input']!r} / Expected: {r['expected']} / Actual: {r['actual']}"
         for r in failed
@@ -95,14 +113,20 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
 
 
 async def get_hint(code: str, results: list[dict]) -> str | None:
-    """呼叫 Grok API 取得 AI 提示。全部通過時回傳 None。"""
+    """呼叫 Grok API 取得 AI 提示。全部通過時回傳 None。API 失敗時回傳 None。"""
     prompt = build_prompt(code, results)
     if prompt is None:
         return None
 
-    result = client.chat.completions.create(
-        model="grok-3",
-        messages=[{"role": "user", "content": prompt}],
-    )
-    response = await result if inspect.isawaitable(result) else result
-    return response.choices[0].message.content
+    try:
+        result = client.chat.completions.create(
+            model="grok-3",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response = await result if inspect.isawaitable(result) else result
+        content = response.choices[0].message.content
+        if content is None:
+            return None
+        return content
+    except openai.OpenAIError:
+        return None
