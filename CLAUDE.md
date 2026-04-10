@@ -60,7 +60,8 @@ pytest -v        # 19 tests，約 3-4 秒
 ## 關鍵架構決策
 
 - **後端跑全部 18 筆 test case**，前端只渲染到第一個失敗（含）為止
-- AI prompt 有 3 個分支：`syntax_error/runtime_error` → stderr 說明；`no_return` → 提醒 return；`wrong_answer`（error_type=None）→ 傳所有失敗 cases 做 pattern 推斷 + 2 步驟回答
+- AI prompt 有 3 個分支：`syntax_error/runtime_error` → stderr 說明；`no_return` → 提醒 return；`wrong_answer`（error_type=None）→ 傳第一個失敗的 input/actual/expected + 其餘失敗 cases 輔助參考，讓 AI 從輸出落差給具體提示（不用步驟格式）
+- wrong_answer prompt 的 failed_summary 會截斷超過 50 字元的字串，避免壓力測試 case（`"a"*50000`）讓 prompt 過大導致 Groq API 失敗
 - executor 用 AST 過濾禁止模組（os, sys, subprocess, socket 等），用 `start_new_session=True` + `os.killpg` 確保 timeout 時整個 process group 都被 kill
 
 ## 環境設定
@@ -85,9 +86,9 @@ cd frontend && npm install
 
 ## CORS
 
-後端允許所有 `localhost:*` port（regex），Vite 換 port 不需要改設定：
+後端允許所有 `localhost:*` port 及 `*.vercel.app`（regex）：
 ```python
-allow_origin_regex=r"http://localhost:\d+"
+allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app"
 ```
 
 ## 前端樣式
@@ -95,6 +96,15 @@ allow_origin_regex=r"http://localhost:\d+"
 - **設計：** Warm Terminal 美學，IBM Plex Mono 統一全站字型
 - **配色：** CSS 變數定義在 App.vue `<style>`，amber accent（`--amber: #dfa050`）
 - **佈局：** 左欄（題目+編輯器+提交），右欄 sticky 500px（結果+AI 提示）
+
+## 部署
+
+- **GitHub：** https://github.com/Auxe512/python-learning-platform
+- **前端：** https://python-learning-platform-one.vercel.app/（Vercel，免費）
+- **後端：** https://python-learning-platform-quf0.onrender.com（Render，免費）
+- `git push` 自動觸發兩邊重新部署
+- Render 免費方案閒置 15 分鐘後休眠，前端有冷啟動提示（loading 超過 5 秒顯示警告）
+- `api.js` 的 axios timeout 設為 60 秒
 
 ## 設計規格與計畫
 
