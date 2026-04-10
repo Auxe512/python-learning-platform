@@ -17,7 +17,10 @@
             <span class="btn-icon">{{ loading ? '⟳' : '▶' }}</span>
             <span>{{ loading ? '執行中...' : '提交程式碼' }}</span>
           </button>
-          <span v-if="loading" class="loading-dots">
+          <span v-if="loading && warmingUp" class="warming-msg">
+            ☕ 伺服器冷啟動中，請稍候約 30 秒…
+          </span>
+          <span v-else-if="loading" class="loading-dots">
             <span></span><span></span><span></span>
           </span>
         </div>
@@ -56,26 +59,33 @@ const problem = {
   ],
 }
 
-const code    = ref(STARTER_CODE)
-const results = ref([])
-const hint    = ref(null)
-const loading = ref(false)
-const error   = ref(null)
+const code      = ref(STARTER_CODE)
+const results   = ref([])
+const hint      = ref(null)
+const loading   = ref(false)
+const warmingUp = ref(false)
+const error     = ref(null)
 
 async function handleSubmit() {
-  loading.value = true
-  results.value = []
-  hint.value    = null
-  error.value   = null
+  loading.value   = true
+  warmingUp.value = false
+  results.value   = []
+  hint.value      = null
+  error.value     = null
+
+  const warmTimer = setTimeout(() => { warmingUp.value = true }, 5000)
+
   try {
     const data    = await submitCode(code.value)
     results.value = data.results
     hint.value    = data.hint
   } catch (err) {
     console.error('Submit error:', err)
-    error.value = '無法連線到後端，請確認伺服器是否啟動（port 8000）'
+    error.value = '無法連線到後端，請稍後再試'
   } finally {
-    loading.value = false
+    clearTimeout(warmTimer)
+    loading.value   = false
+    warmingUp.value = false
   }
 }
 </script>
@@ -192,7 +202,7 @@ strong { font-weight: 600; }
 }
 
 .right-col {
-  width: 400px;
+  width: 500px;
   flex-shrink: 0;
   height: calc(100vh - 52px);
   overflow-y: auto;
@@ -268,4 +278,10 @@ strong { font-weight: 600; }
   gap: 8px;
 }
 .error-icon { font-size: 10px; }
+
+.warming-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--amber);
+}
 </style>
