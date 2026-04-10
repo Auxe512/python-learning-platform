@@ -77,8 +77,12 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
 2. 用繁體中文回答，語氣友善鼓勵
 3. 回答控制在 150 字以內"""
 
+    def truncate(v, n=50):
+        s = repr(v)
+        return s if len(s) <= n else s[:n] + '...'
+
     failed_summary = "\n".join(
-        f"- Input: {r['input']!r} / Expected: {r['expected']} / Actual: {r['actual']}"
+        f"- Input: {truncate(r['input'])} / Expected: {r['expected']} / Actual: {truncate(r['actual'])}"
         for r in failed
     )
 
