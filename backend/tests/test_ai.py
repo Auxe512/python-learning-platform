@@ -49,15 +49,18 @@ def test_build_prompt_no_return_mentions_return():
     assert "步驟一" not in prompt
 
 
-def test_build_prompt_wrong_answer_has_two_steps():
+def test_build_prompt_wrong_answer_focuses_on_output_gap():
     # error_type=None means: ran successfully but returned wrong value
     results = [
         make_result(1, "abcabcbb", 3, "8", False, None),
         make_result(2, "bbbbb", 1, "5", False, None),
     ]
     prompt = build_prompt("code", results)
-    assert "步驟一" in prompt
-    assert "步驟二" in prompt
+    # prompt should highlight the input/output gap, not use rigid step format
+    assert "abcabcbb" in prompt   # first fail input
+    assert "8" in prompt          # first fail actual output
+    assert "3" in prompt          # first fail expected
+    assert "步驟一" not in prompt  # new design: no rigid step headers
 
 
 def test_build_prompt_wrong_answer_includes_all_failures():
