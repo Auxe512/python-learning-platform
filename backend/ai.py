@@ -28,13 +28,29 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
     first_fail = failed[0]
     error_type = first_fail["error_type"]
 
-    if error_type in ("syntax_error", "runtime_error"):
+    if error_type == "syntax_error":
         return f"""你是一個程式學習助教，目標是幫助大一學生學習 Python。
 
 學生程式碼：
 {code}
 
-執行時發生錯誤，錯誤訊息如下：
+程式碼有語法錯誤，無法執行。錯誤訊息如下：
+{first_fail['stderr']}
+
+請解釋這個語法錯誤的意思，並引導學生找到並修正問題。
+
+規則：
+1. 不要直接給出修正後的程式碼
+2. 用繁體中文回答，語氣友善鼓勵
+3. 回答控制在 150 字以內"""
+
+    if error_type == "runtime_error":
+        return f"""你是一個程式學習助教，目標是幫助大一學生學習 Python。
+
+學生程式碼：
+{code}
+
+程式執行時發生錯誤，錯誤訊息如下：
 {first_fail['stderr']}
 
 請解釋這個錯誤訊息的意思，並引導學生找到並修正問題。

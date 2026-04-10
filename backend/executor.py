@@ -42,6 +42,11 @@ async def run_code(code: str, input_val: str, timeout: float = 5.0) -> dict:
     if forbidden_error:
         return {"actual": None, "error_type": "runtime_error", "stderr": forbidden_error}
 
+    try:
+        compile(code, "<student>", "exec")
+    except SyntaxError as e:
+        return {"actual": None, "error_type": "syntax_error", "stderr": f"SyntaxError: {e}"}
+
     runner_script = f"""{code}
 
 _sol = Solution()
