@@ -86,34 +86,27 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
         for r in failed
     )
 
-    return f"""你是一個程式學習助教，目標是幫助大一學生學習 Python。
+    return f"""你是一個程式學習助教，幫助大一學生學習 Python。
 
 題目：Longest Substring Without Repeating Characters
 學生程式碼：
 {code}
 
-所有失敗的測試案例（用來推斷錯誤 pattern）：
+目前學生看到的第一個失敗案例：
+- 輸入：{first_fail['input']!r}
+- 學生程式碼的輸出：{first_fail['actual']}
+- 正確答案：{first_fail['expected']}
+
+其他失敗案例（輔助參考）：
 {failed_summary}
 
-第一個失敗的測試案例（學生目前看到的）：
-- Input：{first_fail['input']!r}
-- 預期輸出：{first_fail['expected']}
-- 實際輸出：{first_fail['actual']}
+請根據「這個輸入」和「學生程式碼實際給出的輸出」，分析程式碼哪裡出問題，然後給學生一個引導式提示，讓他能朝正確方向思考。
 
-請依照以下兩個步驟回答：
-
-【步驟一：推斷錯誤原因】
-根據所有失敗案例的輸出 pattern，推斷學生的程式碼在邏輯上犯了什麼錯誤。
-請說明你的推斷依據（例如：「'bbbbb' 回傳 5 而非 1，代表...」）。
-
-【步驟二：給予引導提示】
-根據步驟一的推斷，針對第一個失敗的測試案例給學生一個引導式提示。
-
-規則：
-1. 不要直接給出正確程式碼或答案
-2. 提示要基於推斷出的錯誤原因，不是泛泛而談
-3. 用繁體中文回答，語氣友善鼓勵
-4. 整體回答控制在 200 字以內"""
+要求：
+1. 不要直接給出正確程式碼
+2. 提示要具體，針對這個 input/output 的落差，不要泛泛而談
+3. 用繁體中文，語氣自然友善，像在跟學生說話
+4. 控制在 150 字以內"""
 
 
 async def get_hint(code: str, results: list[dict]) -> str | None:
