@@ -61,9 +61,10 @@ pytest -v        # 19 tests，約 3-4 秒
 
 - **後端跑全部 18 筆 test case**，前端只渲染到第一個失敗（含）為止
 - `judge.py` 用 `asyncio.gather` 並行跑 18 個 test case，單次 submission 回應時間縮短約一半
-- AI prompt 有 3 個分支：`syntax_error/runtime_error` → stderr 說明；`no_return` → 提醒 return；`wrong_answer`（error_type=None）→ 傳第一個失敗的 input/actual/expected + 其餘失敗 cases 輔助參考，讓 AI 從輸出落差給具體提示（不用步驟格式）
+- AI prompt 有 4 個分支：`syntax_error` → 強調「語法錯誤無法執行」；`runtime_error` → 強調「執行時錯誤」；`no_return` → 提醒 return；`wrong_answer`（error_type=None）→ 傳第一個失敗的 input/actual/expected + 其餘失敗 cases，並在分析前先提醒 AI 檢查 return 縮排層級與迴圈是否提早終止（小模型容易漏看）
 - wrong_answer prompt 的 failed_summary 會截斷超過 50 字元的字串，避免壓力測試 case（`"a"*50000`）讓 prompt 過大導致 Groq API 失敗
 - executor 用 AST 過濾禁止模組（os, sys, subprocess, socket 等），用 `start_new_session=True` + `os.killpg` 確保 timeout 時整個 process group 都被 kill
+- executor 在跑 subprocess 前先用 `compile()` 做語法檢查，語法錯誤直接 early return（避免在某些環境下 subprocess 卡住觸發 timeout），stderr 格式帶上問題那行原碼與 `^` 指針，給 AI 足夠 context 判斷具體錯誤
 
 ## 環境設定
 
