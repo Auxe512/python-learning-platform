@@ -60,23 +60,6 @@ def build_prompt(code: str, results: list[dict]) -> str | None:
 3. 回答控制在 100 字以內"""
 
     # wrong_answer (error_type is None): use full pattern-analysis prompt
-    # Guard: if error_type is unknown (not None), treat as runtime_error
-    if error_type is not None:
-        return f"""你是一個程式學習助教，目標是幫助大一學生學習 Python。
-
-學生程式碼：
-{code}
-
-執行時發生錯誤，錯誤訊息如下：
-{first_fail.get('stderr', '（錯誤訊息不可用）')}
-
-請解釋這個錯誤訊息的意思，並引導學生找到並修正問題。
-
-規則：
-1. 不要直接給出修正後的程式碼
-2. 用繁體中文回答，語氣友善鼓勵
-3. 回答控制在 150 字以內"""
-
     def truncate(v, n=50):
         s = repr(v)
         return s if len(s) <= n else s[:n] + '...'

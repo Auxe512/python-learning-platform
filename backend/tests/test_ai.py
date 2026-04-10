@@ -73,8 +73,10 @@ def test_build_prompt_wrong_answer_includes_all_failures():
     # all failures should appear in the pattern section
     assert "bbbbb" in prompt
     assert "pwwkew" in prompt
-    # first_fail is highlighted
-    assert "5" in prompt  # actual of first fail
+    # first_fail actual should appear in its own labeled line
+    assert "學生程式碼的輸出：5" in prompt
+    # other failures appear in the failed_summary with Actual: format
+    assert "Actual: '6'" in prompt
 
 
 # --- get_hint tests (mock API) ---

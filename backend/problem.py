@@ -1,30 +1,3 @@
-PROBLEM = {
-    "title": "Longest Substring Without Repeating Characters",
-    "description": "給定一個字串 s，請找出不含重複字元的最長子字串的長度。",
-    "examples": [
-        {
-            "input": "abcabcbb",
-            "output": 3,
-            "explanation": '最長不重複子字串為 "abc"，長度為 3',
-        },
-        {
-            "input": "bbbbb",
-            "output": 1,
-            "explanation": '最長子字串為 "b"，長度為 1',
-        },
-        {
-            "input": "pwwkew",
-            "output": 3,
-            "explanation": '最長不重複子字串為 "wke"，長度為 3',
-        },
-    ],
-    "starter_code": """class Solution:
-    def lengthOfLongestSubstring(self, s: str) -> int:
-        # 在此撰寫你的解法
-        pass
-""",
-}
-
 TEST_CASES = [
     # 基本測試
     {"index": 1,  "input": "abcabcbb",                   "expected": 3,  "is_stress": False},

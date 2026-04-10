@@ -86,12 +86,12 @@
     │ POST /submit { code: "..." }
     ▼
 FastAPI
-    ├── 1. executor.py：對全部 18 組 test case 以 asyncio subprocess 執行（不中途停止）
+    ├── 1. executor.py：以 asyncio subprocess 執行單一 test case
     │       ├── 語法錯誤 / exception → 捕捉 stderr，標記 error_type="syntax_error" / "runtime_error"
     │       ├── 回傳 None → 標記 error_type="no_return"
     │       └── 正常執行 → 回傳 actual output
-    ├── 2. judge.py：比對每組 actual output vs expected output
-    │       收集完整結果：[{ input, expected, actual, passed, error_type, stderr }, ...]（共 18 筆）
+    ├── 2. judge.py：用 asyncio.gather 並行執行全部 18 組 test case，比對 actual vs expected
+    │       收集完整結果：[{ input, expected, actual, passed, error_type, stderr }, ...]（共 18 筆，順序與 TEST_CASES 一致）
     ├── 3. ai.py：組裝 prompt → 呼叫 Groq Cloud API
     │       從完整結果中篩出所有失敗的 cases → 送給 AI 做 pattern 推斷
     │       AI 先推斷錯誤根本原因（從多組失敗 pattern），再針對第一個失敗給提示
@@ -129,15 +129,24 @@ Vue.js 前端（顯示邏輯在這裡控制）
 
 ## UI 設計
 
-**佈局：上下堆疊（單欄）**  
-深色主題（Catppuccin Mocha 色系）
+**佈局：左右兩欄**
+- **左欄：** Topbar → 題目說明 → Monaco Editor → 提交按鈕
+- **右欄：** sticky 500px，測試結果 + AI 學習提示
 
-1. **Topbar** — 平台名稱
-2. **題目說明** — 題目標題、描述、3 組範例卡片（較大字體）
-3. **程式碼編輯器** — Monaco Editor，Python 3 語法高亮 + 自動補全
+**主題：** Warm Terminal 美學
+- 深色背景（`#0c0b09`）+ amber accent（`#dfa050`）
+- 全站統一 IBM Plex Mono 字型
+- Pass/Fail 用 green/red border-left，hover 有微互動
+
+**冷啟動提示：** 提交後若 loading 超過 5 秒（Render 免費方案冷啟動），顯示「☕ 伺服器冷啟動中，請稍候約 30 秒…」
+
+**區塊功能：**
+1. **Topbar** — 平台名稱 + LeetCode #3 tag
+2. **題目說明** — 題目標題、描述、3 組範例卡片
+3. **程式碼編輯器** — Monaco Editor，Python 3 語法高亮 + 自動補全，vs-dark 主題
 4. **提交按鈕** — 按下後送出程式碼，觸發整個分析流程
 5. **測試結果** — 依序顯示通過的 test case（✓），直到第一個失敗（✗）為止，後面的不顯示
-6. **AI 學習提示** — 紫色邊框區塊，針對第一個失敗的 test case 給出分析與引導
+6. **AI 學習提示** — teal 邊框區塊，針對第一個失敗的 test case 給出分析與引導
 
 ---
 
@@ -194,48 +203,45 @@ Vue.js 前端（顯示邏輯在這裡控制）
 
 ### 情況三：`wrong_answer`
 
-程式正常執行但答案錯誤，使用完整版 prompt，傳入所有失敗 cases 做 pattern 推斷：
+程式正常執行但答案錯誤，使用完整版 prompt，聚焦在第一個失敗案例的 input/output 落差，其餘失敗案例作為輔助參考（字串輸入/輸出會截斷為 50 字元，避免壓力測試 case 把 prompt 撐爆）：
 
 ```
-你是一個程式學習助教，目標是幫助大一學生學習 Python。
+你是一個程式學習助教，幫助大一學生學習 Python。
 
 題目：Longest Substring Without Repeating Characters
 學生程式碼：
 {student_code}
 
-所有失敗的測試案例（用來推斷錯誤 pattern）：
-{all_failed_cases}
-（每筆格式：Input / Expected / Actual）
+目前學生看到的第一個失敗案例：
+- 輸入：{first_fail_input}
+- 學生程式碼的輸出：{first_fail_actual}
+- 正確答案：{first_fail_expected}
 
-第一個失敗的測試案例（學生目前看到的）：
-- Input：{first_fail_input}
-- 預期輸出：{first_fail_expected}
-- 實際輸出：{first_fail_actual}
+其他失敗案例（輔助參考）：
+{failed_summary}
+（每筆格式：Input / Expected / Actual，長字串截斷 50 字元）
 
-請依照以下兩個步驟回答：
+請根據「這個輸入」和「學生程式碼實際給出的輸出」，分析程式碼哪裡出問題，然後給學生一個引導式提示，讓他能朝正確方向思考。
 
-【步驟一：推斷錯誤原因】
-根據所有失敗案例的輸出 pattern，推斷學生的程式碼在邏輯上犯了什麼錯誤。
-請說明你的推斷依據（例如：「'bbbbb' 回傳 5 而非 1，代表...」）。
-
-【步驟二：給予引導提示】
-根據步驟一的推斷，針對第一個失敗的測試案例給學生一個引導式提示。
-
-規則：
-1. 不要直接給出正確程式碼或答案
-2. 提示要基於推斷出的錯誤原因，不是泛泛而談
-3. 用繁體中文回答，語氣友善鼓勵
-4. 整體回答控制在 200 字以內
+要求：
+1. 不要直接給出正確程式碼
+2. 提示要具體，針對這個 input/output 的落差，不要泛泛而談
+3. 用繁體中文，語氣自然友善，像在跟學生說話
+4. 控制在 150 字以內
 ```
+
+**設計理念：** 原本使用「步驟一/步驟二」格式會讓 AI 回答過度結構化、機械式。改為自然語氣的分析 + 提示，聚焦在「這個 input 進去為什麼你的輸出是 X 而不是 Y」，讓 AI 的推理更直接對應學生看到的錯誤。
 
 ---
 
 ## 多人同時使用
 
 - FastAPI 搭配 `uvicorn`，預設支援非同步並發
-- `executor.py` 改用 `asyncio.create_subprocess_exec`（非阻塞），讓多個學生的提交可同時執行，不互相卡住
+- `executor.py` 用 `asyncio.create_subprocess_exec`（非阻塞），讓多個學生的提交可同時執行
+- `judge.py` 用 `asyncio.gather` 並行跑同一份 submission 的 18 個 test case，縮短單次提交回應時間
 - 每次提交是完全獨立的 subprocess，沒有共享狀態
 - 壓力測試 case（`"a"*50000`）timeout 設為 **10s**，其餘 **5s**，防止暴力解卡住其他人
+- **部署注意：** Render 免費方案只有 0.1 CPU 共享，若要在電腦教室讓多位學生同時測試，可能會遇到 CPU 飽和問題。正式教室測試前建議先評估，必要時升級付費方案或改用自架 VPS
 
 ---
 
