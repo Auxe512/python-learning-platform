@@ -45,7 +45,12 @@ async def run_code(code: str, input_val: str, timeout: float = 5.0) -> dict:
     try:
         compile(code, "<student>", "exec")
     except SyntaxError as e:
-        return {"actual": None, "error_type": "syntax_error", "stderr": f"SyntaxError: {e}"}
+        lines = [f"SyntaxError: {e.msg} (line {e.lineno})"]
+        if e.text:
+            lines.append(f"  {e.text.rstrip()}")
+            if e.offset:
+                lines.append("  " + " " * (e.offset - 1) + "^")
+        return {"actual": None, "error_type": "syntax_error", "stderr": "\n".join(lines)}
 
     runner_script = f"""{code}
 
