@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = AsyncOpenAI(
-    api_key=os.environ.get("GROK_API_KEY", ""),
-    base_url="https://api.x.ai/v1",
+    api_key=os.environ.get("GROQ_API_KEY", ""),
+    base_url="https://api.groq.com/openai/v1",
 )
 
 
@@ -120,7 +120,7 @@ async def get_hint(code: str, results: list[dict]) -> str | None:
 
     try:
         result = client.chat.completions.create(
-            model="grok-3",
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
         )
         response = await result if inspect.isawaitable(result) else result
